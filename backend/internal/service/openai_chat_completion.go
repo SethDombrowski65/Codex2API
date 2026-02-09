@@ -8,7 +8,7 @@ import (
 
 type ChatCompletionMessage struct {
 	Role       string                   `json:"role"`
-	Content    interface{}              `json:"content,omitempty"`
+	Content    any                      `json:"content,omitempty"`
 	Name       string                   `json:"name,omitempty"`
 	ToolCalls  []ChatCompletionToolCall `json:"tool_calls,omitempty"`
 	ToolCallID string                   `json:"tool_call_id,omitempty"`
@@ -388,7 +388,7 @@ func ConvertResponsesStreamToChatCompletionStream(line string) (string, error) {
 		"delta": map[string]any{},
 	}
 	
-	delta := choice["delta"].(map[string]any)
+	delta, _ := choice["delta"].(map[string]any)
 	
 	if output, ok := responsesChunk["output"].([]interface{}); ok {
 		for _, item := range output {
@@ -424,10 +424,14 @@ func ConvertResponsesStreamToChatCompletionStream(line string) (string, error) {
 						toolCall["id"] = callID
 					}
 					if name, ok := itemMap["name"].(string); ok {
-						toolCall["function"].(map[string]any)["name"] = name
+						if fn, ok := toolCall["function"].(map[string]any); ok {
+							fn["name"] = name
+						}
 					}
 					if args, ok := itemMap["arguments"].(string); ok {
-						toolCall["function"].(map[string]any)["arguments"] = args
+						if fn, ok := toolCall["function"].(map[string]any); ok {
+							fn["arguments"] = args
+						}
 					}
 					
 					toolCalls = append(toolCalls, toolCall)
