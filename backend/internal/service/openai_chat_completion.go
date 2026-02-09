@@ -57,12 +57,12 @@ type ChatCompletionRequest struct {
 }
 
 type ChatCompletionResponse struct {
-	ID      string                       `json:"id"`
-	Object  string                       `json:"object"`
-	Created int64                        `json:"created"`
-	Model   string                       `json:"model"`
-	Choices []ChatCompletionChoice       `json:"choices"`
-	Usage   *ChatCompletionUsage         `json:"usage,omitempty"`
+	ID      string                 `json:"id"`
+	Object  string                 `json:"object"`
+	Created int64                  `json:"created"`
+	Model   string                 `json:"model"`
+	Choices []ChatCompletionChoice `json:"choices"`
+	Usage   *ChatCompletionUsage   `json:"usage,omitempty"`
 }
 
 type ChatCompletionChoice struct {
@@ -73,9 +73,9 @@ type ChatCompletionChoice struct {
 }
 
 type ChatCompletionUsage struct {
-	PromptTokens            int `json:"prompt_tokens"`
-	CompletionTokens        int `json:"completion_tokens"`
-	TotalTokens             int `json:"total_tokens"`
+	PromptTokens            int                      `json:"prompt_tokens"`
+	CompletionTokens        int                      `json:"completion_tokens"`
+	TotalTokens             int                      `json:"total_tokens"`
 	PromptTokensDetails     *PromptTokensDetails     `json:"prompt_tokens_details,omitempty"`
 	CompletionTokensDetails *CompletionTokensDetails `json:"completion_tokens_details,omitempty"`
 }
@@ -275,7 +275,10 @@ func ConvertResponsesToChatCompletion(responsesResp map[string]any) (*ChatComple
 		
 		for _, item := range output {
 			if itemMap, ok := item.(map[string]any); ok {
-				itemType, _ := itemMap["type"].(string)
+				var itemType string
+				if t, ok := itemMap["type"].(string); ok {
+					itemType = t
+				}
 				
 				switch itemType {
 				case "message":
@@ -393,7 +396,10 @@ func ConvertResponsesStreamToChatCompletionStream(line string) (string, error) {
 	if output, ok := responsesChunk["output"].([]any); ok {
 		for _, item := range output {
 			if itemMap, ok := item.(map[string]any); ok {
-				itemType, _ := itemMap["type"].(string)
+				var itemType string
+				if t, ok := itemMap["type"].(string); ok {
+					itemType = t
+				}
 				
 				switch itemType {
 				case "message":
