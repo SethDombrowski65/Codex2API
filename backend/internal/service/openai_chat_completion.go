@@ -15,9 +15,9 @@ type ChatCompletionMessage struct {
 }
 
 type ChatCompletionToolCall struct {
-	ID       string                       `json:"id"`
-	Type     string                       `json:"type"`
-	Function ChatCompletionFunctionCall   `json:"function"`
+	ID       string                     `json:"id"`
+	Type     string                     `json:"type"`
+	Function ChatCompletionFunctionCall `json:"function"`
 }
 
 type ChatCompletionFunctionCall struct {
@@ -26,7 +26,7 @@ type ChatCompletionFunctionCall struct {
 }
 
 type ChatCompletionTool struct {
-	Type     string                    `json:"type"`
+	Type     string                     `json:"type"`
 	Function ChatCompletionToolFunction `json:"function"`
 }
 
@@ -38,22 +38,22 @@ type ChatCompletionToolFunction struct {
 }
 
 type ChatCompletionRequest struct {
-	Model            string                   `json:"model"`
-	Messages         []ChatCompletionMessage  `json:"messages"`
-	MaxTokens        *int                     `json:"max_tokens,omitempty"`
-	MaxCompletionTokens *int                  `json:"max_completion_tokens,omitempty"`
-	Temperature      *float64                 `json:"temperature,omitempty"`
-	TopP             *float64                 `json:"top_p,omitempty"`
-	N                *int                     `json:"n,omitempty"`
-	Stream           *bool                    `json:"stream,omitempty"`
-	Stop             interface{}              `json:"stop,omitempty"`
-	PresencePenalty  *float64                 `json:"presence_penalty,omitempty"`
-	FrequencyPenalty *float64                 `json:"frequency_penalty,omitempty"`
-	LogitBias        map[string]float64       `json:"logit_bias,omitempty"`
-	User             string                   `json:"user,omitempty"`
-	Tools            []ChatCompletionTool     `json:"tools,omitempty"`
-	ToolChoice       interface{}              `json:"tool_choice,omitempty"`
-	Store            *bool                    `json:"store,omitempty"`
+	Model               string                  `json:"model"`
+	Messages            []ChatCompletionMessage `json:"messages"`
+	MaxTokens           *int                    `json:"max_tokens,omitempty"`
+	MaxCompletionTokens *int                    `json:"max_completion_tokens,omitempty"`
+	Temperature         *float64                `json:"temperature,omitempty"`
+	TopP                *float64                `json:"top_p,omitempty"`
+	N                   *int                    `json:"n,omitempty"`
+	Stream              *bool                   `json:"stream,omitempty"`
+	Stop                any                     `json:"stop,omitempty"`
+	PresencePenalty     *float64                `json:"presence_penalty,omitempty"`
+	FrequencyPenalty    *float64                `json:"frequency_penalty,omitempty"`
+	LogitBias           map[string]float64      `json:"logit_bias,omitempty"`
+	User                string                  `json:"user,omitempty"`
+	Tools               []ChatCompletionTool    `json:"tools,omitempty"`
+	ToolChoice          any                     `json:"tool_choice,omitempty"`
+	Store               *bool                   `json:"store,omitempty"`
 }
 
 type ChatCompletionResponse struct {
@@ -66,10 +66,10 @@ type ChatCompletionResponse struct {
 }
 
 type ChatCompletionChoice struct {
-	Index        int                     `json:"index"`
-	Message      ChatCompletionMessage   `json:"message"`
-	FinishReason *string                 `json:"finish_reason"`
-	LogProbs     interface{}             `json:"logprobs,omitempty"`
+	Index        int                   `json:"index"`
+	Message      ChatCompletionMessage `json:"message"`
+	FinishReason *string               `json:"finish_reason"`
+	LogProbs     any                   `json:"logprobs,omitempty"`
 }
 
 type ChatCompletionUsage struct {
@@ -217,7 +217,7 @@ func ConvertChatCompletionToResponses(chatReq *ChatCompletionRequest) (map[strin
 	return responsesReq, nil
 }
 
-func convertMessageContent(content interface{}) interface{} {
+func convertMessageContent(content any) any {
 	if content == nil {
 		return nil
 	}
@@ -231,10 +231,10 @@ func convertMessageContent(content interface{}) interface{} {
 		}
 	}
 	
-	if arr, ok := content.([]interface{}); ok {
+	if arr, ok := content.([]any); ok {
 		result := make([]map[string]any, 0, len(arr))
 		for _, item := range arr {
-			if itemMap, ok := item.(map[string]interface{}); ok {
+			if itemMap, ok := item.(map[string]any); ok {
 				result = append(result, itemMap)
 			}
 		}
@@ -261,7 +261,7 @@ func ConvertResponsesToChatCompletion(responsesResp map[string]any) (*ChatComple
 		chatResp.Model = model
 	}
 	
-	if output, ok := responsesResp["output"].([]interface{}); ok {
+	if output, ok := responsesResp["output"].([]any); ok {
 		choices := make([]ChatCompletionChoice, 0, 1)
 		choice := ChatCompletionChoice{
 			Index: 0,
@@ -274,14 +274,14 @@ func ConvertResponsesToChatCompletion(responsesResp map[string]any) (*ChatComple
 		var toolCalls []ChatCompletionToolCall
 		
 		for _, item := range output {
-			if itemMap, ok := item.(map[string]interface{}); ok {
+			if itemMap, ok := item.(map[string]any); ok {
 				itemType, _ := itemMap["type"].(string)
 				
 				switch itemType {
 				case "message":
-					if content, ok := itemMap["content"].([]interface{}); ok {
+					if content, ok := itemMap["content"].([]any); ok {
 						for _, c := range content {
-							if cMap, ok := c.(map[string]interface{}); ok {
+							if cMap, ok := c.(map[string]any); ok {
 								if cMap["type"] == "text" {
 									if text, ok := cMap["text"].(string); ok {
 										contentParts = append(contentParts, text)
@@ -329,7 +329,7 @@ func ConvertResponsesToChatCompletion(responsesResp map[string]any) (*ChatComple
 		chatResp.Choices = choices
 	}
 	
-	if usage, ok := responsesResp["usage"].(map[string]interface{}); ok {
+	if usage, ok := responsesResp["usage"].(map[string]any); ok {
 		chatResp.Usage = &ChatCompletionUsage{}
 		if inputTokens, ok := usage["input_tokens"].(float64); ok {
 			chatResp.Usage.PromptTokens = int(inputTokens)
@@ -390,9 +390,9 @@ func ConvertResponsesStreamToChatCompletionStream(line string) (string, error) {
 	
 	delta, _ := choice["delta"].(map[string]any)
 	
-	if output, ok := responsesChunk["output"].([]interface{}); ok {
+	if output, ok := responsesChunk["output"].([]any); ok {
 		for _, item := range output {
-			if itemMap, ok := item.(map[string]interface{}); ok {
+			if itemMap, ok := item.(map[string]any); ok {
 				itemType, _ := itemMap["type"].(string)
 				
 				switch itemType {
@@ -400,9 +400,9 @@ func ConvertResponsesStreamToChatCompletionStream(line string) (string, error) {
 					if role, ok := itemMap["role"].(string); ok {
 						delta["role"] = role
 					}
-					if content, ok := itemMap["content"].([]interface{}); ok {
+					if content, ok := itemMap["content"].([]any); ok {
 						for _, c := range content {
-							if cMap, ok := c.(map[string]interface{}); ok {
+							if cMap, ok := c.(map[string]any); ok {
 								if cMap["type"] == "text" {
 									if text, ok := cMap["text"].(string); ok {
 										delta["content"] = text
@@ -450,7 +450,7 @@ func ConvertResponsesStreamToChatCompletionStream(line string) (string, error) {
 	choices = append(choices, choice)
 	chatChunk["choices"] = choices
 	
-	if usage, ok := responsesChunk["usage"].(map[string]interface{}); ok {
+	if usage, ok := responsesChunk["usage"].(map[string]any); ok {
 		chatUsage := map[string]any{}
 		if inputTokens, ok := usage["input_tokens"].(float64); ok {
 			chatUsage["prompt_tokens"] = int(inputTokens)
